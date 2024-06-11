@@ -97,6 +97,7 @@ char *pspace(char *ptr, char *end) {
 #define PARTS { \
 	PART(psleep, 1000000) \
 	PART(ppower, "󰁹 %2.0f") \
+	PART(pspace) \
 	PART(pfcpu, " %2.1f   %2.1f") \
 	PART(pspace) \
 	PART(pftime, " %a %Y/%m/%d  %H:%M.%S") \
