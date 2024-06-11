@@ -63,6 +63,13 @@ char *pftime(char *ptr, char *end, char *format) {
 	return ptr + strftime(ptr, end - ptr, format, timeinfo);
 }
 
+char *ppower(char *ptr, char *end, char *format) {
+	static float temp;
+	static glob_t *glob_res_temp;
+	temp = avgfiles("/sys/class/power_supply/BAT*/capacity", &glob_res_temp);
+	return ptr + snprintf(ptr, end - ptr, format, temp);
+}
+
 char *ptext(char *ptr, char *end, char *str) {
 	if (!str) return 0;
 	int l = strlen(str);
@@ -89,6 +96,7 @@ char *pspace(char *ptr, char *end) {
 #define PART(name, ...) ptr = (name)(ptr, end __VA_OPT__(,) __VA_ARGS__); if (ptr >= end) return end;
 #define PARTS { \
 	PART(psleep, 1000000) \
+	PART(ppower, "󰁹 %2.0f") \
 	PART(pfcpu, " %2.1f   %2.1f") \
 	PART(pspace) \
 	PART(pftime, " %a %Y/%m/%d  %H:%M.%S") \
