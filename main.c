@@ -1,46 +1,82 @@
-#include <X11/Xlib.h>
-#include <stdlib.h>
+#define _POSIX_C_SOURCE 200809L
+#define _DEFAULT_SOURCE
+
 #include <stdio.h>
+#include <stdlib.h>
+
+#include <string.h>
+#include <unistd.h>
+#include <time.h>
+
+#include <pthread.h>
+
+#include <X11/Xlib.h>
+
+static struct timespec now = { 0, 0 };
 
 #include "config.h"
 
-#define LENGTH 512
-char status[LENGTH];
+#define SECOND 1000000000L
 
-Display *dpy;
-Window root;
+#ifndef TIMEINTERVALSECONDPRECISE
+	#ifndef TIMEINTERVALSECONDS
+		#error Define TIMEINTERVALSECONDS
+	#endif
+#endif
 
-inline void setstatus() {
+static char status[BUFFERSIZE];
+
+static Display* dpy;
+static Window root;
+
+static inline void setstatus() {
 	XStoreName(dpy, root, status);
-    XFlush(dpy);
-    
+	XFlush(dpy);
 }
 
-inline char* createstatus(char *ptr, int len) {
-	char *end = ptr + len;
+static inline char* createstatus(char *ptr, int len) {
+	char* end = ptr + len;
 	PARTS;
 	return ptr;
 }
 
 int main() {
 
-    if ((dpy = XOpenDisplay(NULL)) == NULL) {
-        fprintf(stderr, "Cannot open display\n");
-        exit(1);
-    }
-    root = XDefaultRootWindow(dpy);
+	if ((dpy = XOpenDisplay(NULL)) == NULL) {
+		fprintf(stderr, "Cannot open display\n");
+		exit(1);
+	}
+	root = XDefaultRootWindow(dpy);
 
-    while (1) {
-    	static char *end;
-    	end = createstatus(status, LENGTH - 1);
+	clock_gettime(CLOCK_REALTIME, &now);
+
+	while (1) {
+
+		static char* end;
+		end = createstatus(status, BUFFERSIZE - 1);
 		*end = '\0';
 		#ifdef DEBUG
 			printf("%s %lu\n", status, end - status);
 		#endif
-    	setstatus();
-    }
+		setstatus();
 
-    XCloseDisplay(dpy);
+		#ifdef TIMEINTERVALSECONDPRECISE
+			clock_gettime(CLOCK_REALTIME, &now);
+			static struct timespec ts = { 0, 0 };
+			ts.tv_nsec = SECOND - now.tv_nsec;
+			nanosleep(&ts, NULL);
+		#else
+			static struct timespec ts = (struct timespec){ TIMEINTERVALSECONDS, 0 };
+			nanosleep(&ts, NULL);
+		#endif
+		clock_gettime(CLOCK_REALTIME, &now);
+		#ifdef DEBUG
+			printf("%lf\n", (double)now.tv_sec + (double)now.tv_nsec / (double)SECOND);
+		#endif
 
-    return 0;
+	}
+
+	XCloseDisplay(dpy);
+
+	return 0;
 }
