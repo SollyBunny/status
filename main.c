@@ -8,11 +8,11 @@
 #include <unistd.h>
 #include <time.h>
 
-#include <pthread.h>
-
 #include <X11/Xlib.h>
 
 static struct timespec now = { 0, 0 };
+
+#define PART(name, ...) ptr = (name)(ptr, end __VA_OPT__(,) __VA_ARGS__); if (ptr >= end) return end;
 
 #include "config.h"
 
@@ -41,7 +41,6 @@ static inline char* createstatus(char *ptr, int len) {
 }
 
 int main() {
-
 	if ((dpy = XOpenDisplay(NULL)) == NULL) {
 		fprintf(stderr, "Cannot open display\n");
 		exit(1);
@@ -51,8 +50,7 @@ int main() {
 	clock_gettime(CLOCK_REALTIME, &now);
 
 	while (1) {
-
-		static char* end;
+		char* end;
 		end = createstatus(status, BUFFERSIZE - 1);
 		*end = '\0';
 		#ifdef DEBUG
@@ -62,18 +60,17 @@ int main() {
 
 		#ifdef TIMEINTERVALSECONDPRECISE
 			clock_gettime(CLOCK_REALTIME, &now);
-			static struct timespec ts = { 0, 0 };
+			struct timespec ts = { 0, 0 };
 			ts.tv_nsec = SECOND - now.tv_nsec;
 			nanosleep(&ts, NULL);
 		#else
-			static struct timespec ts = (struct timespec){ TIMEINTERVALSECONDS, 0 };
+			struct timespec ts = (struct timespec){ TIMEINTERVALSECONDS, 0 };
 			nanosleep(&ts, NULL);
 		#endif
 		clock_gettime(CLOCK_REALTIME, &now);
 		#ifdef DEBUG
 			printf("%lf\n", (double)now.tv_sec + (double)now.tv_nsec / (double)SECOND);
 		#endif
-
 	}
 
 	XCloseDisplay(dpy);
